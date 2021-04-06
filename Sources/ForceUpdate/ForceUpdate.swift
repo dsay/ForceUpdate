@@ -29,7 +29,9 @@ public struct ForceUpdate {
             if status == .success {
                 self.activate(completion: completion)
             } else {
-                completion(.failure(.notActivated))
+                DispatchQueue.main.async {
+                    completion(.failure(.notActivated))
+                }
             }
         }
     }
@@ -37,7 +39,9 @@ public struct ForceUpdate {
     private func activate(completion: @escaping (Result<Void, ForceUpdateError>) -> Void) {
         self.config.activate() { changed, error in
             guard error == nil else {
-                completion(.failure(.notActivated))
+                DispatchQueue.main.async {
+                    completion(.failure(.notActivated))
+                }
                 return
             }
             
@@ -49,18 +53,26 @@ public struct ForceUpdate {
             {
                 let appVersion = Version(boundleVersionS)
                 let currentVersion = Version(currentVersionS)
-
+                
                 if appVersion < currentVersion {
                     if isRequired {
-                        completion(.failure(.requiredUpdate(storeUrl)))
+                        DispatchQueue.main.async {
+                            completion(.failure(.requiredUpdate(storeUrl)))
+                        }
                     } else {
-                        completion(.failure(.recommendedUpdate(storeUrl)))
+                        DispatchQueue.main.async {
+                            completion(.failure(.recommendedUpdate(storeUrl)))
+                        }
                     }
                 } else {
-                    completion(.success(()))
+                    DispatchQueue.main.async {
+                        completion(.success(()))
+                    }
                 }
             } else {
-                completion(.failure(.parsingError))
+                DispatchQueue.main.async {
+                    completion(.failure(.parsingError))
+                }
             }
         }
     }

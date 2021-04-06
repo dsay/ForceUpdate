@@ -66,11 +66,11 @@ extension Version {
         lhs.string.compare(rhs.string) == .orderedSame
     }
 
-    public static func < (lhs: Version, rhs: Version) -> Bool {
+    public static func > (lhs: Version, rhs: Version) -> Bool {
         lhs.string.compare(rhs.string) == .orderedDescending
     }
     
-    public static func > (lhs: Version, rhs: Version) -> Bool {
+    public static func < (lhs: Version, rhs: Version) -> Bool {
         lhs.string.compare(rhs.string) == .orderedAscending
     }
 }
