@@ -36,43 +36,40 @@ public struct ForceUpdate {
         }
     }
     
+    public func fetch(completion: @escaping (Result<Void, ForceUpdateError>) -> Void) {
+        let isRequired = self.config.configValue(forKey: Key.force_update_required.rawValue).boolValue
+        
+        if let boundleVersionS = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+           let currentVersionS = self.config.configValue(forKey: Key.force_update_current_version.rawValue).stringValue,
+           let storeUrl = self.config.configValue(forKey: Key.force_update_store_url.rawValue).stringValue
+        {
+            let appVersion = Version(boundleVersionS)
+            let currentVersion = Version(currentVersionS)
+            
+            if appVersion < currentVersion {
+                if isRequired {
+                    completion(.failure(.requiredUpdate(storeUrl)))
+                } else {
+                    completion(.failure(.recommendedUpdate(storeUrl)))
+                }
+            } else {
+                completion(.success(()))
+            }
+        } else {
+            completion(.failure(.parsingError))
+        }
+    }
+    
     private func activate(completion: @escaping (Result<Void, ForceUpdateError>) -> Void) {
-        self.config.activate() { changed, error in
+        self.config.activate() { _, error in
             guard error == nil else {
                 DispatchQueue.main.async {
                     completion(.failure(.notActivated))
                 }
                 return
             }
-            
-            let isRequired = self.config.configValue(forKey: Key.force_update_required.rawValue).boolValue
-            
-            if let boundleVersionS = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
-               let currentVersionS = self.config.configValue(forKey: Key.force_update_current_version.rawValue).stringValue,
-               let storeUrl = self.config.configValue(forKey: Key.force_update_store_url.rawValue).stringValue
-            {
-                let appVersion = Version(boundleVersionS)
-                let currentVersion = Version(currentVersionS)
-                
-                if appVersion < currentVersion {
-                    if isRequired {
-                        DispatchQueue.main.async {
-                            completion(.failure(.requiredUpdate(storeUrl)))
-                        }
-                    } else {
-                        DispatchQueue.main.async {
-                            completion(.failure(.recommendedUpdate(storeUrl)))
-                        }
-                    }
-                } else {
-                    DispatchQueue.main.async {
-                        completion(.success(()))
-                    }
-                }
-            } else {
-                DispatchQueue.main.async {
-                    completion(.failure(.parsingError))
-                }
+            DispatchQueue.main.async {
+                self.fetch(completion: completion)
             }
         }
     }
