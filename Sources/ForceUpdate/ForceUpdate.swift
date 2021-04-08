@@ -1,76 +1,39 @@
 import Foundation
-import FirebaseRemoteConfig
 
 public enum ForceUpdateError: LocalizedError {
     
-    case notActivated
     case parsingError
     case requiredUpdate(String)
     case recommendedUpdate(String)
 }
 
-public enum Key: String {
+public protocol ForceUpdateConfig {
     
-    case force_update_required
-    case force_update_current_version
-    case force_update_store_url
+    var isRequired: Bool { get }
+    var version: String { get }
+    var storeURL: String { get }
 }
 
 public struct ForceUpdate {
     
-    let config: RemoteConfig
-    
-    public init(_ config: RemoteConfig) {
-        self.config = config
-    }
-    
-    public func startTracking(completion: @escaping (Result<Void, ForceUpdateError>) -> Void) {
-        config.fetch() { status, error -> Void in
-            if status == .success {
-                self.activate(completion: completion)
-            } else {
-                DispatchQueue.main.async {
-                    completion(.failure(.notActivated))
-                }
-            }
-        }
-    }
-    
-    public func fetch(completion: @escaping (Result<Void, ForceUpdateError>) -> Void) {
-        let isRequired = self.config.configValue(forKey: Key.force_update_required.rawValue).boolValue
+    public func fetch(config: ForceUpdateConfig) -> Result<Void, ForceUpdateError> {
         
-        if let boundleVersionS = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
-           let currentVersionS = self.config.configValue(forKey: Key.force_update_current_version.rawValue).stringValue,
-           let storeUrl = self.config.configValue(forKey: Key.force_update_store_url.rawValue).stringValue
-        {
+        if let boundleVersionS = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            
             let appVersion = Version(boundleVersionS)
-            let currentVersion = Version(currentVersionS)
+            let currentVersion = Version(config.version)
             
             if appVersion < currentVersion {
-                if isRequired {
-                    completion(.failure(.requiredUpdate(storeUrl)))
+                if config.isRequired {
+                    return .failure(.requiredUpdate(config.storeURL))
                 } else {
-                    completion(.failure(.recommendedUpdate(storeUrl)))
+                    return .failure(.recommendedUpdate(config.storeURL))
                 }
             } else {
-                completion(.success(()))
+                return .success(())
             }
         } else {
-            completion(.failure(.parsingError))
-        }
-    }
-    
-    private func activate(completion: @escaping (Result<Void, ForceUpdateError>) -> Void) {
-        self.config.activate() { _, error in
-            guard error == nil else {
-                DispatchQueue.main.async {
-                    completion(.failure(.notActivated))
-                }
-                return
-            }
-            DispatchQueue.main.async {
-                self.fetch(completion: completion)
-            }
+            return .failure(.parsingError)
         }
     }
 }
