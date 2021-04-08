@@ -16,6 +16,10 @@ public protocol ForceUpdateConfig {
 
 public struct ForceUpdate {
     
+    public init() {
+        
+    }
+    
     public func fetch(config: ForceUpdateConfig) -> Result<Void, ForceUpdateError> {
         
         if let boundleVersionS = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
